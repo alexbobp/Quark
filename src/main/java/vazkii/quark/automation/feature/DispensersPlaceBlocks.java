@@ -15,11 +15,14 @@ import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumFacing.Axis;
+import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
+import vazkii.quark.automation.FakerPlayer;
 import vazkii.quark.base.module.Feature;
 import vazkii.quark.misc.feature.LockDirectionHotkey;
 
@@ -85,11 +88,25 @@ public class DispensersPlaceBlocks extends Feature {
 			if(world.isAirBlock(pos) && block.canPlaceBlockAt(world, pos)) {
 				int meta = item.getMetadata(par2ItemStack.getItemDamage());
 				IBlockState state;
+
+				FakerPlayer player = null;
+				if (world instanceof WorldServer)
+					player = new FakerPlayer((WorldServer)world, pos.add(facing.getDirectionVec()), facing, par2ItemStack);
+
 				if(!(block instanceof BlockPistonBase))
 					state = block.getStateFromMeta(meta);
-				else state = block.getDefaultState();
+				else {
+					if (player != null)
+						state = block.getStateForPlacement(world, pos, EnumFacing.UP, 0f, 0f, 0f,
+								par2ItemStack.getMetadata(), player, EnumHand.MAIN_HAND);
+					else
+						state = block.getDefaultState();
+				}
 
-				LockDirectionHotkey.setBlockRotated(world, state, pos, facing);
+				if (player != null)
+					item.placeBlockAt(par2ItemStack, player, world, pos, EnumFacing.UP,0f, 0f, 0f, state);
+				else
+					LockDirectionHotkey.setBlockRotated(world, state, pos, facing);
 				
 				SoundType soundtype = block.getSoundType();
 				world.playSound(null, pos, soundtype.getPlaceSound(), SoundCategory.BLOCKS, (soundtype.getVolume() + 1.0F) / 2.0F, soundtype.getPitch() * 0.8F);
